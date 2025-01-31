@@ -1,0 +1,133 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cern-auth-proxy
+  namespace: dev-cmsrunregistry
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: cern-auth-proxy
+      app.kubernetes.io/name: cern-auth-proxy
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: cern-auth-proxy
+        app.kubernetes.io/name: cern-auth-proxy
+    spec:
+      automountServiceAccountToken: false
+      containers:
+      - args:
+        - --set-xauthrequest=true
+        - --pass-user-headers=true
+        # Make sure that the cookies do not stay valid for the default 168 hours
+        - --cookie-expire=4h
+        - --reverse-proxy=true
+        - --set-authorization-header=true
+        # Needed to authenticate with client_credentials
+        # See: https://stackoverflow.com/questions/74520641/analyzing-oauth2-client-credential-flow-with-oauth2-proxy-keycloak-oauth2-pro
+        - --skip-jwt-bearer-tokens=true
+        env:
+        - name: OAUTH2_PROXY_HTTP_ADDRESS
+          value: :4180
+        - name: OAUTH2_PROXY_METRICS_ADDRESS
+          value: :44180
+        - name: OAUTH2_PROXY_SILENCE_PING_LOGGING
+          value: "true"
+        - name: OAUTH2_PROXY_REDIRECT_URL
+          value: https://dev-cmsrunregistry.web.cern.ch/oauth2/callback
+        - name: OAUTH2_PROXY_WHITELIST_DOMAINS
+          value: .cern.ch
+        - name: OAUTH2_PROXY_ALLOWED_GROUPS
+          value: default-role
+        - name: OAUTH2_PROXY_UPSTREAMS
+          value: http://example:8080/
+        - name: OAUTH2_PROXY_PROXY_PREFIX
+          value: /oauth2
+        - name: OAUTH2_PROXY_COOKIE_PATH
+          value: /
+        - name: OAUTH2_PROXY_OIDC_GROUPS_CLAIM
+          value: cern_roles
+        - name: OAUTH2_PROXY_PREFER_EMAIL_TO_USER
+          value: "true"
+        - name: OAUTH2_PROXY_EMAIL_DOMAINS
+          value: '*'
+        - name: OAUTH2_PROXY_SCOPE
+          value: openid
+        - name: OAUTH2_PROXY_PROVIDER
+          value: oidc
+        - name: OAUTH2_PROXY_OIDC_ISSUER_URL
+          valueFrom:
+            secretKeyRef:
+              key: issuerURL
+              name: custom-oidc-client-secret
+        - name: OAUTH2_PROXY_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              key: clientID
+              name: custom-oidc-client-secret
+        - name: OAUTH2_PROXY_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              key: clientSecret
+              name: custom-oidc-client-secret
+        - name: OAUTH2_PROXY_COOKIE_SECRET
+          valueFrom:
+            secretKeyRef:
+              key: suggestedCookieSecret
+              name: custom-oidc-client-secret
+        - name: OAUTH2_PROXY_COOKIE_SECURE
+          value: "false"
+        - name: OAUTH2_PROXY_SKIP_PROVIDER_BUTTON
+          value: "true"
+        image: image-registry.openshift-image-registry.svc:5000/openshift/oauth2-proxy@sha256:3da33b9670c67bd782277f99acadf7026f75b9507bfba2088eb2d497266ef7fc
+        imagePullPolicy: Always
+        livenessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /ping
+            port: http
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        name: sso-proxy
+        ports:
+        - containerPort: 4180
+          name: http
+          protocol: TCP
+        - containerPort: 44180
+          name: metrics
+          protocol: TCP
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /ping
+            port: http
+            scheme: HTTP
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        resources:
+          limits:
+            cpu: 100m
+            memory: 100Mi
+          requests:
+            cpu: 50m
+            memory: 20Mi
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      serviceAccount: default
+      serviceAccountName: default
+      terminationGracePeriodSeconds: 30
