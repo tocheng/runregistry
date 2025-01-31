@@ -26,6 +26,16 @@ data:
     }
 
     location /api/ {
+        if ($request_method = OPTIONS) {
+          add_header Access-Control-Allow-Origin "$http_origin";
+          add_header Access-Control-Allow-Headers "accept, authorization, content-type, user-agent, x-csrftoken, x-requested-with";
+          add_header Access-Control-Allow-Methods "DELETE, GET, OPTIONS, PATCH, POST, PUT";
+          add_header Access-Control-Allow-Credentials "true";
+          add_header Content-Length 0;
+          add_header Content-Type text/plain;
+          return 204;
+        }
+
         auth_request /oauth2/auth;
         error_page 401 = /oauth2/start;
 
@@ -43,6 +53,12 @@ data:
         proxy_set_header email             $email;
         proxy_set_header egroups           $groups;
         proxy_set_header displayname       $preferredUsername;
+
+        proxy_hide_header Access-Control-Allow-Origin;
+        add_header Access-Control-Allow-Origin "$http_origin";
+        add_header Access-Control-Allow-Headers "accept, authorization, content-type, user-agent, x-csrftoken, x-requested-with";
+        add_header Access-Control-Allow-Methods "DELETE, GET, OPTIONS, PATCH, POST, PUT";
+        add_header Access-Control-Allow-Credentials "true";
 
         proxy_pass http://runregistry-backend:9500/;
         proxy_read_timeout 500s;  # Backend may take a long time to respond for some queries
