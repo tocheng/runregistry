@@ -26,6 +26,10 @@ data:
     }
 
     location /api/ {
+        # Since the oauth2-proxy doesn't set any cors headers
+        # we need to set the header here for the OPTIONS methods.
+        # This is needed to request data from the run registry api
+        # directly from a frontend hosted in a different origin.
         if ($request_method = OPTIONS) {
           add_header Access-Control-Allow-Origin "$http_origin";
           add_header Access-Control-Allow-Headers "accept, authorization, content-type, user-agent, x-csrftoken, x-requested-with";
@@ -54,6 +58,12 @@ data:
         proxy_set_header egroups           $groups;
         proxy_set_header displayname       $preferredUsername;
 
+        # The express.js run registry backend is setting the "Access-Control-Allow-Origin"
+        # header as "*", this is done to enable local development (since the frontend
+        # is hosted in a different origin). However, in the production evironment the browser
+        # will block any requests (issued from different origins) that contains "*" in the response headers.
+        # Therefore, this is needed to request data from the run registry api
+        # directly from a frontend hosted in a different origin.
         proxy_hide_header Access-Control-Allow-Origin;
         add_header Access-Control-Allow-Origin "$http_origin";
         add_header Access-Control-Allow-Headers "accept, authorization, content-type, user-agent, x-csrftoken, x-requested-with";
