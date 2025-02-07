@@ -87,7 +87,7 @@ spec:
           value: "false"
         - name: OAUTH2_PROXY_SKIP_PROVIDER_BUTTON
           value: "true"
-        image: image-registry.openshift-image-registry.svc:5000/openshift/oauth2-proxy@sha256:3da33b9670c67bd782277f99acadf7026f75b9507bfba2088eb2d497266ef7fc
+        image: image-registry.openshift-image-registry.svc:5000/openshift/oauth2-proxy:latest
         imagePullPolicy: Always
         livenessProbe:
           failureThreshold: 3
