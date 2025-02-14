@@ -19,7 +19,20 @@ data:
     client_max_body_size 0;
 
     location /oauth2/ {
-        proxy_pass       http://cern-auth-proxy:4180;    # TODO: must match the Release name used to deploy the cern-auth-proxy service
+        # The following config takes care of the temporary transition
+        # from the one auth proxy to the other. To do so, the
+        # user agent is checked, which lets us know which version of
+        # runregistry_api_client is making the request.
+        # "if" statements are generally NOT advised in location context,
+        # but we don't seem to be able to use "map", even if we wrap it in http context.
+        # What's more, there's no "else" statement, so we resort to
+        # using two ifs.
+        if ($http_user_agent ~ "runregistry_api_client/3.+"){
+          proxy_pass       http://cern-auth-proxy:4180;
+        }
+        if ($http_user_agent !~ "runregistry_api_client/3.+"){
+          proxy_pass       http://cern-auth-proxy-helm:4180;
+        }
         proxy_set_header Host                    $host;
         proxy_set_header X-Scheme                $scheme;
         proxy_set_header X-Auth-Request-Redirect $request_uri;
