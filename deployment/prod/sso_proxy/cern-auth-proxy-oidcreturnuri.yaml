@@ -1,0 +1,12 @@
+apiVersion: webservices.cern.ch/v1alpha1
+kind: OidcReturnURI
+metadata:
+  labels:
+    app.kubernetes.io/instance: cern-auth-proxy
+    app.kubernetes.io/name: cern-auth-proxy
+    app.kubernetes.io/part-of: cern-auth-proxy
+    app.kubernetes.io/version: latest
+  name: cern-auth-proxy
+  namespace: cmsrunregistry
+spec:
+  redirectURI: https://cmsrunregistry.web.cern.ch/oauth2/callback
